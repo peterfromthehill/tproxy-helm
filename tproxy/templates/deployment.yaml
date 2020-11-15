@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "tproxy.fullname" . }}
+  labels:
+    {{- include "tproxy.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "tproxy.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "tproxy.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "tproxy.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+      - name: {{ .Chart.Name }}
+        env:
+        - name: SSLCACHE_DIR
+          value: {{ .Values.tproxy.sslcacheDir }}
+        - name: HTTP_PORT
+          value: {{ .Values.tproxy.httpPort }}
+        - name: HTTPS_PORT
+          value: {{ .Values.tproxy.httpsPort }}
+        - name: SSLKEY_FILE
+          value: /ca/tls.key
+        - name: SSLCERT_FILE
+          value: /ca/tls.crt
+        - name: PROXY_HOST
+          value: {{ .Values.tproxy.proxyHost }}
+        - name: PROXY_PORT
+          value: {{ .Values.tproxy.proxyPort }}
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - name: sslcache
+          mountPath: {{ .Values.tproxy.sslcacheDir }} 
+        - name: caSecret     
+          mountPath: /ca
+        ports:
+        - name: http
+          containerPort: {{ .Values.tproxy.httpPort }}
+          protocol: TCP
+        - name: https
+          containerPort: {{ .Values.tproxy.httpsPort }}
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+      - name: sslcache
+        emptyDir: {}
+      - name: caSecret
+        secret:
+          secretName: {{ .Values.tproxy.caSecretName }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
