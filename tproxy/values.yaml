@@ -62,5 +62,6 @@ tproxy:
   httpPort: 8080
   httpsPort: 8443
   caSecretName: tproxy-ca
-  proxyHost: squid
-  proxyPort: 3128
+  httpProxy: http://squid:3128
+  httpsProxy: http://squid:3128
+  noProxy: 127.0.0.1,localhost,::1
