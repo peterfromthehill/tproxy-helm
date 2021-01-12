@@ -76,12 +76,13 @@ spec:
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
         livenessProbe:
+          failureThreshold: 30
+          periodSeconds: 30                
           exec:
             command:
-            - # call a configmap script with
-            # which curl || apk add curl
-            # ADD CA Certs to /etc/ssl/cert.pem
-            # curl -x "" --resolve www.google.de:443:127.0.0.1 https://www.google.de -v           
+            - sh
+            - -c 
+            - (which curl >/dev/null|| apk add curl) && for u in {{ join " " .Values.tproxy.hostCheck }}; do curl -s --connect-timeout 5 --cacert /ca/tls.crt --resolve ${u}:443:127.0.0.1 https://${u} -o /dev/null -x "" -w "try https://${u} %{http_code}\n" || exit 1; done
       volumes:
       - name: casecret
         secret:
