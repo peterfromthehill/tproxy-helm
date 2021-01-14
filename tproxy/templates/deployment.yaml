@@ -33,7 +33,7 @@ spec:
         env:
         - name: HTTPS_PORT
           value: {{ .Values.tproxy.httpsPort | quote }}
-        image: docker.lej.eis.network/nicolaka/netshoot
+        image: nicolaka/netshoot
         imagePullPolicy: Always
         name: socat
         resources:
