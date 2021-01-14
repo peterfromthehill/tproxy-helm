@@ -26,6 +26,23 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
+      - command:
+        - sh
+        - -c
+        - socat -d -d -d TCP4-LISTEN:443,fork,bind=127.0.0.1,reuseaddr TCP4:localhost:$HTTPS_PORT && tail -F /dev/null
+        env:
+        - name: HTTPS_PORT
+          value: {{ .Values.tproxy.httpsPort | quote }}
+        image: nicolaka/netshoot
+        imagePullPolicy: Always
+        name: socat
+        resources:
+          limits:
+            cpu: 100m
+            memory: 32Mi
+          requests:
+            cpu: 100m
+            memory: 32Mi
       - name: {{ .Chart.Name }}
         env:
         - name: HTTP_PORT
@@ -58,6 +75,14 @@ spec:
           protocol: TCP
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
+        livenessProbe:
+          failureThreshold: 30
+          periodSeconds: 30                
+          exec:
+            command:
+            - sh
+            - -c 
+            - (which curl >/dev/null|| apk add curl) && for u in {{ join " " .Values.tproxy.hostCheck }}; do curl -s --connect-timeout 5 --cacert /ca/tls.crt --resolve ${u}:443:127.0.0.1 https://${u} -o /dev/null -x "" -w "try https://${u} %{http_code}\n" || exit 1; done
       volumes:
       - name: casecret
         secret:

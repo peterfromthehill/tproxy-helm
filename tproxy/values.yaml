@@ -65,3 +65,7 @@ tproxy:
   httpProxy: http://squid:3128
   httpsProxy: http://squid:3128
   noProxy: 127.0.0.1,localhost,::1
+  hostCheck:
+  - login.microsoftonline.com
+  - functionscdn.azureedge.net
+  - smba.trafficmanager.net
